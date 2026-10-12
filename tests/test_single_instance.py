@@ -1,5 +1,6 @@
 """Second launches must reach the running instance (offscreen Qt)."""
 import os
+import threading
 import unittest
 import uuid
 
@@ -39,7 +40,39 @@ class SingleInstanceTests(unittest.TestCase):
         received = []
         first.activation_requested.connect(received.append)
         self.assertTrue(first.try_acquire())
-        self.assertFalse(second.try_acquire())
+
+        # A real second launch is a separate process, so the first process's
+        # Qt event loop continues running while the second connects and writes.
+        # Run the client attempt on a worker thread to model that concurrency;
+        # calling try_acquire() inline would block this test's event loop.
+        outcome = {}
+        finished = threading.Event()
+
+        def attempt_second_launch():
+            try:
+                outcome["acquired"] = second.try_acquire()
+            except BaseException as exc:
+                outcome["error"] = exc
+            finally:
+                finished.set()
+
+        worker = threading.Thread(target=attempt_second_launch, daemon=True)
+        worker.start()
+
+        loop = QEventLoop()
+        poll = QTimer()
+        poll.setInterval(10)
+        poll.timeout.connect(lambda: loop.quit() if finished.is_set() else None)
+        poll.start()
+        QTimer.singleShot(2000, loop.quit)
+        loop.exec()
+        poll.stop()
+        worker.join(timeout=1)
+
+        self.assertTrue(finished.is_set(), "second-launch attempt timed out")
+        if "error" in outcome:
+            raise outcome["error"]
+        self.assertFalse(outcome["acquired"], "second launch should be rejected")
         self.pump()
         self.assertEqual(received, ["show"])
 
