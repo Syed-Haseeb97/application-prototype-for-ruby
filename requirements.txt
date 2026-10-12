@@ -1,0 +1,18 @@
+PyQt6>=6.6.0
+mss>=9.0.1
+Pillow>=10.0.0
+speechrecognition>=3.10.0
+edge-tts>=6.1.9
+google-generativeai>=0.8.0
+pynput>=1.7.6
+python-dotenv>=1.0.0
+pyttsx3>=2.90
+# Required for microphone input through SpeechRecognition on Windows.
+PyAudioWPatch>=0.2.12.7
+
+# Optional F12 screen-click automation:
+# pyautogui>=0.9.54
+# Optional F6 local wake-word support (Python/platform compatibility may vary):
+# openwakeword>=0.6.0
+# numpy>=1.26
+# F5 screen recording uses ffmpeg/ffplay installed separately and available on PATH.
